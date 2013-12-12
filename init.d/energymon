@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Start the energymon service.
+#
+### BEGIN INIT INFO
+# Provides:          energymon
+# Required-Start:    $local_fs $syslog
+# Required-Stop:     $local_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: energymon
+# Description:       energymon
+### END INIT INFO
+
+dir=/opt/energymon
+name=energymon
+exe1=$dir/energymon.sh
+pid1=/var/run/energymon.pid
+exe2=$dir/gas_counter.pl
+pid2=/var/run/gas_counter.pid
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        log_begin_msg "Starting $name service"
+        start-stop-daemon --start --quiet --pidfile $pid1 --exec $exe1
+        start-stop-daemon --start --background --quiet --pidfile $pid2 --exec $exe2
+        log_end_msg $?
+        ;;
+    stop)
+        log_begin_msg "Stopping $name service"
+        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid1
+        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid2
+        log_end_msg $?
+        ;;
+    *)
+        echo "$0 {start|stop}"
+        ;;
+esac
