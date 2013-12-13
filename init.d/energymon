@@ -16,7 +16,7 @@ dir=/opt/energymon
 name=energymon
 exe1=$dir/energymon.sh
 pid1=/var/run/energymon.pid
-exe2=$dir/gas_counter.pl
+exe2=$dir/gas_counter.sh
 pid2=/var/run/gas_counter.pid
 
 . /lib/lsb/init-functions
@@ -25,7 +25,7 @@ case "$1" in
     start)
         log_begin_msg "Starting $name service"
         start-stop-daemon --start --quiet --pidfile $pid1 --exec $exe1
-        start-stop-daemon --start --background --quiet --pidfile $pid2 --exec $exe2
+        start-stop-daemon --start --quiet --pidfile $pid2 --exec $exe2
         log_end_msg $?
         ;;
     stop)

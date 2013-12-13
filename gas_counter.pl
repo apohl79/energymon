@@ -3,7 +3,7 @@
 use strict;
 
 # wiringpi pin
-my $gpio_pin = 0;
+my $gpio_pin = 17;
 # on each impulse we used 0.01qm of gas
 my $impulse_count = 0.01;
 # persistance interval in seconds
@@ -21,39 +21,30 @@ my $db = "DBI:mysql:database=energy;host=localhost";
 my $dbu = "root";
 my $dbp = "password";
 
-my $pidfile = "/var/run/gas_counter.pid";
-open F, ">$pidfile";
-print F $$;
-close F;
-
-my $logdir = "/var/log/energymon";
-my $logfile = "$logdir/gas.log";
-if (! -d "$logdir") {
-  system "mkdir -p $logdir";
-}
-open LOG, ">$logfile";
-
 # initialising the gpio pin
-#system "gpio mode $gpio_pin in";
-system "gpio mode $gpio_pin down";
+logmsg("setting up gpio pin $gpio_pin");
+system "gpio export $gpio_pin in";
 
 my $last_t = time;
 my $counter = 0.0;
 
+$|++;
+
 while (1) {
   wait_for_pin(0);
+  logmsg("waiting for impulse...");
   wait_for_pin(1);
   $counter += $impulse_count;
   my $delta_t = time() - $last_t;
-  log("impulse detected, counter = $counter, delta_t = $delta_t");
+  logmsg("impulse detected, counter = $counter, delta_t = $delta_t");
   if ($delta_t >= $persist_interval) {
-    log("persisting...");
+    logmsg("persisting...");
     if (persist($counter) == 0) {
-      log("done");
+      logmsg("done");
       $last_t = time;
       $counter = 0.0;
     } else {
-      log("failed");
+      logmsg("failed");
     }
   }
 }
@@ -85,17 +76,21 @@ sub is_pin_stable {
     if ($val != gpio_read()) {
       return 0;
     }
+    usleep($poll_freq * 1000);
   }
   return 1;
 }
 
 sub gpio_read {
-  my $val = `gpio read $gpio_pin`;
+  open F, "< /sys/class/gpio/gpio$gpio_pin/value"
+    or die "can't open /sys/class/gpio/gpio$gpio_pin/value";
+  my $val = <F>;
+  close F;
   chomp $val;
   return $val;
 }
 
-sub log {
+sub logmsg {
   my $msg = shift;
-  print LOG "[".strftime('%Y-%m-%d %H:%M:%S', localtime(time))."] $msg\n";
+  print "[".strftime('%Y-%m-%d %H:%M:%S', localtime(time))."] $msg\n";
 }
