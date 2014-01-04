@@ -2,7 +2,7 @@ package impulse_cfg;
 
 my $mode = $ARGV[0];
 if (!defined($mode)) {
-  print "Usage: $0 <gas|current>\n";
+  print "Usage: $0 <gas|power>\n";
   exit;
 }
 
@@ -23,7 +23,7 @@ our $stable_count = 10;
 # db table to persist data to
 our $db_table = "";
 
-if ($mode eq "current") {
+if ($mode eq "power") {
   $gpio_pin = 18;
   $impulse_count = 0.001;
   $pin_off = 1;
@@ -31,7 +31,7 @@ if ($mode eq "current") {
   $persist_interval = 300;
   $poll_freq = 3;
   $stable_count = 3;
-  $db_table = "current";
+  $db_table = "power";
 } elsif ($mode eq "gas") {
   $gpio_pin = 17;
   $impulse_count = 0.01;

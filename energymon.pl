@@ -16,8 +16,8 @@ get '/gas' => sub {
   return get_data(params->{unit}, params->{num}, "gas");
 };
 
-get '/current' => sub {
-  return get_data(params->{unit}, params->{num}, "current");
+get '/power' => sub {
+  return get_data(params->{unit}, params->{num}, "power");
 };
 
 get '/temp' => sub {

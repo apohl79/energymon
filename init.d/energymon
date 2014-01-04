@@ -16,10 +16,10 @@ dir=/opt/energymon
 name=energymon
 exe1=$dir/energymon.sh
 pid1=/var/run/energymon.pid
-exe2=$dir/gas_counter.sh
-pid2=/var/run/gas_counter.pid
-exe3=$dir/current_counter.sh
-pid3=/var/run/current_counter.pid
+exe2=$dir/gas_meter.sh
+pid2=/var/run/gas_meter.pid
+exe3=$dir/power_meter.sh
+pid3=/var/run/power_meter.pid
 exe4=$dir/heating.sh
 pid4=/var/run/heating.pid
 
