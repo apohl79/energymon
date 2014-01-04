@@ -13,11 +13,28 @@ my $dbu = "root";
 my $dbp = "password";
 
 get '/gas' => sub {
-  my $unit = params->{unit};
-  my $num = params->{num};
+  return get_data(params->{unit}, params->{num}, "gas");
+};
+
+get '/current' => sub {
+  return get_data(params->{unit}, params->{num}, "current");
+};
+
+get '/temp' => sub {
+  return get_temp("temp_".params->{t});
+};
+
+start();
+
+sub get_data {
+  my $unit = shift;
+  my $num = shift;
+  my $table = shift;
   my $sec_diff = 0;
-  if ($unit eq "sec") {
-    $sec_diff = $num;
+  my $beg;
+  my $end;
+  if ($unit eq "openhab") {
+    $sec_diff = 5 * 60; # 5min for openhab
   } elsif ($unit eq "min") {
     $sec_diff = $num * 60;
   } elsif ($unit eq "hour") {
@@ -28,14 +45,29 @@ get '/gas' => sub {
     $sec_diff = $num * 60 * 60 * 24 * 31;
   } elsif ($unit eq "year") {
     $sec_diff = $num * 60 * 60 * 24 * 365;
+  } elsif ($unit eq "yesterday") {
+    $beg ||= strftime('%Y-%m-%d 00:00:00', localtime(time() - 86400));
+    $end ||= strftime('%Y-%m-%d 23:59:59', localtime(time() - 86400));
   }
-  my $beg = strftime('%Y-%m-%d %H:%M:%S', localtime(time() - $sec_diff));
-  my $end = strftime('%Y-%m-%d %H:%M:%S', localtime(time));
+  $beg ||= strftime('%Y-%m-%d %H:%M:%S', localtime(time() - $sec_diff));
+  $end ||= strftime('%Y-%m-%d %H:%M:%S', localtime(time));
   my $dbh = DBI->connect($db, $dbu, $dbp);
-  my $sth = $dbh->prepare("select sum(delta) from gas where time between '$beg' and '$end'");
+  my $sth = $dbh->prepare("select sum(delta) from $table where time between '$beg' and '$end'");
+  $sth->execute();
+  my @result = $sth->fetchrow_array;
+  my $val = $result[0];
+  $val ||= 0;
+  if ($val && $unit eq "openhab") {
+    $val /= 5;
+  }
+  return $val;
+}
+
+sub get_temp {
+  my $temp = shift;
+  my $dbh = DBI->connect($db, $dbu, $dbp);
+  my $sth = $dbh->prepare("select temp from $temp order by time desc limit 1");
   $sth->execute();
   my @result = $sth->fetchrow_array;
   return $result[0];
-};
-
-start();
+}

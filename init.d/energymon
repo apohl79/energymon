@@ -18,6 +18,10 @@ exe1=$dir/energymon.sh
 pid1=/var/run/energymon.pid
 exe2=$dir/gas_counter.sh
 pid2=/var/run/gas_counter.pid
+exe3=$dir/current_counter.sh
+pid3=/var/run/current_counter.pid
+exe4=$dir/heating.sh
+pid4=/var/run/heating.pid
 
 . /lib/lsb/init-functions
 
@@ -26,12 +30,16 @@ case "$1" in
         log_begin_msg "Starting $name service"
         start-stop-daemon --start --quiet --pidfile $pid1 --exec $exe1
         start-stop-daemon --start --quiet --pidfile $pid2 --exec $exe2
+        start-stop-daemon --start --quiet --pidfile $pid3 --exec $exe3
+        start-stop-daemon --start --quiet --pidfile $pid4 --exec $exe4
         log_end_msg $?
         ;;
     stop)
         log_begin_msg "Stopping $name service"
         start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid1
         start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid2
+        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid3
+        start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid4
         log_end_msg $?
         ;;
     *)

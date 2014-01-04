@@ -1,21 +1,12 @@
 #!/usr/bin/perl
 
 use strict;
-
-# wiringpi pin
-my $gpio_pin = 17;
-# on each impulse we used 0.01qm of gas
-my $impulse_count = 0.01;
-# persistance interval in seconds
-my $persist_interval = 300;
-# poll frequency in ms
-my $poll_freq = 100;
-# number of reads to consider a value stable
-my $stable_count = 10;
-
 use DBI;
 use Time::HiRes qw(usleep);
 use POSIX qw(strftime);
+
+use lib "/opt/energymon";
+use impulse_cfg;
 
 my $db = "DBI:mysql:database=energy;host=localhost";
 my $dbu = "root";
@@ -28,12 +19,14 @@ system "gpio export $gpio_pin in";
 my $last_t = time;
 my $counter = 0.0;
 
+$SIG{TERM} = sub { persist($counter); exit; };
+
 $|++;
 
 while (1) {
-  wait_for_pin(0);
+  wait_for_pin($pin_off);
   logmsg("waiting for impulse...");
-  wait_for_pin(1);
+  wait_for_pin($pin_on);
   $counter += $impulse_count;
   my $delta_t = time() - $last_t;
   logmsg("impulse detected, counter = $counter, delta_t = $delta_t");
@@ -52,7 +45,7 @@ while (1) {
 sub persist {
   my $val = shift;
   my $dbh = DBI->connect($db, $dbu, $dbp) or return 1;
-  $dbh->do("insert into gas (time, delta) values(now(), $val)");
+  $dbh->do("insert into $db_table (time, delta) values(now(), $val)");
   $dbh->disconnect();
   return 0;
 }
