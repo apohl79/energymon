@@ -6,6 +6,7 @@ DEBUG = 1
 allowed_keys = frozenset([
     'temp_boiler',
     'temp_outdoor',
+    'temp_feed',
     #'temp_buffer',
     #'temp_collector',
     #'temp_hottap',
@@ -20,9 +21,6 @@ db_pass = 'password'
 temperatures = dict()
 temperatures_lock = threading.Lock()
 
-for key in allowed_keys:
-    temperatures[key] = list()
-
 def read_data():
     ser = serial.Serial('/dev/ttyUSB0')
     while (1):
@@ -31,15 +29,29 @@ def read_data():
             if DEBUG:
                 print data
         else:
-            (key, value) = data.split('=', 1)
-            if DEBUG:
-                print "DATA: key = " + key + ", value = " + value 
-            if key in allowed_keys:
-                temperatures_lock.acquire()
-                temperatures[key].append(float(value))
-                temperatures_lock.release()
-            else:
-                print "Ignoring: " + data
+            if data.count("=") == 1:
+                (key, value) = data.split('=', 1)
+                if DEBUG:
+                    print "DATA: key = " + key + ", value = " + value 
+                if key in allowed_keys:
+                    temperatures_lock.acquire()
+                    temperatures[key].append(float(value))
+                    temperatures_lock.release()
+                else:
+                    print "Ignoring: " + data
+
+def check_table(tbl):
+    db = MySQLdb.connect(db_host, db_user, db_pass, db_db)
+    cursor = db.cursor()
+    cursor.execute("create table if not exists " + tbl + " (time DATETIME NOT NULL PRIMARY KEY, temp DOUBLE NOT NULL)")
+    db.commit()
+    db.close()
+
+
+for key in allowed_keys:
+    if not key == 'null':
+        temperatures[key] = list()
+        check_table(key)
 
 try:
     thread.start_new_thread(read_data, ())
