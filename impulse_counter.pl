@@ -14,6 +14,7 @@ my $dbp = "password";
 
 # initialising the gpio pin
 logmsg("setting up gpio pin $gpio_pin");
+system "gpio -g mode $gpio_pin down";
 system "gpio export $gpio_pin in";
 
 my $last_t = time;
