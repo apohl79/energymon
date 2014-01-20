@@ -7,9 +7,9 @@ allowed_keys = frozenset([
     'temp_boiler',
     'temp_outdoor',
     'temp_feed',
-    #'temp_buffer',
-    #'temp_collector',
-    #'temp_hottap',
+    'temp_buffer',
+    'temp_collector',
+    'temp_hottap',
     'null'
 ])
 
