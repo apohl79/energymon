@@ -1,26 +1,44 @@
 #include "bsb.h"
 #include "crc.h"
 
-bool DEBUG = true;
+bool DEBUG = false;
 
 #define BSWAP16(n) (((((uint16_t)(n) & 0xFF)) << 8) | (((uint16_t)(n) & 0xFF00) >> 8))
 
-bsb::bsb(uint8_t rx) : m_rx(rx) {
-    m_serial = new serial_reader(m_rx);
+byte Q_HOTTAP[11] =
+    {0xDC, 0x86, 0x00, 0x0B, 0x06, 0x3D, 0x31, 0x05, 0x2F, 0x00, 0x00};
+byte Q_COLLECTOR[11] =
+    {0xDC, 0x86, 0x00, 0x0B, 0x06, 0x3D, 0x49, 0x05, 0x2A, 0x00, 0x00};
+byte Q_BUFFER[11] =
+    {0xDC, 0x86, 0x00, 0x0B, 0x06, 0x3D, 0x05, 0x05, 0x34, 0x00, 0x00};
+
+bsb::bsb(uint8_t rx, uint8_t tx) : m_serial(new serial_layer(rx, tx)) {
+    if (DEBUG) {
+        m_serial->debug();
+    }
+    m_query_list = new byte*[bsb::TOTAL_QUERIES];
+    m_query_len = new uint16_t[bsb::TOTAL_QUERIES];
+    init_query(bsb::HOTTAP, Q_HOTTAP, sizeof(Q_HOTTAP));
+    init_query(bsb::COLLECTOR, Q_COLLECTOR, sizeof(Q_COLLECTOR));
+    init_query(bsb::BUFFER, Q_BUFFER, sizeof(Q_BUFFER));
 }
 
-bsb::~bsb() {
-    delete m_serial;
+void bsb::init_query(int type, byte* query, uint16_t len) {
+    uint16_t crc = BSWAP16(crc16(query, len - sizeof(crc)));
+    m_query_list[type] = new byte[len];
+    m_query_len[type] = len;
+    memcpy(m_query_list[type], query, len - sizeof(crc));
+    memcpy(m_query_list[type] + len - sizeof(crc), &crc, sizeof(crc));
 }
 
 void bsb::read_message() {
     if (DEBUG) {
         Serial.print("DBG: ");
     }
-    read(&m_msg.head, 1);
+    m_serial->read(&m_msg.head, 1);
     if (m_msg.head == 0xdc) {
-        read(&m_msg.src, 3);
-        read(&m_msg.data[0], m_msg.length - 4);
+        m_serial->read(&m_msg.src, 3);
+        m_serial->read(&m_msg.data[0], m_msg.length - 4);
         bool valid = validate();
         if (DEBUG) {
             if (valid) {
@@ -44,15 +62,15 @@ bool bsb::validate() const {
     return (0 == crc16(&m_msg.head, m_msg.length));
 }
 
-void bsb::print_temp(const char* name, const void* p) const {
+void bsb::print_temp(const char* name, const void* p) {
     Serial.print("temp_");
     Serial.print(name);
     Serial.print("=");
-    int16_t t = *((int16_t*) p);
-    Serial.println((float) BSWAP16(t) / 64);
+    int16_t t = BSWAP16(*((int16_t*) p));
+    Serial.println((float) t / 64);
 }
 
-void bsb::print_message() const {
+void bsb::print_message() {
     if (m_msg.data[0] == 0x02) {
         if (m_msg.data[3] == 0x02) {
             switch (m_msg.data[4]) {
@@ -60,8 +78,7 @@ void bsb::print_message() const {
                 print_temp("outdoor", &m_msg.data[5]);
                 break;
             case 0x29:
-                print_temp("hottap", &m_msg.data[5]);
-                print_temp("buffer", &m_msg.data[7]);
+                print_temp("feed", &m_msg.data[5]);
                 break;
             }
         }
@@ -94,18 +111,10 @@ void bsb::print_message() const {
     }
 }
 
-void bsb::read(byte* to, uint16_t len) {
-    for (uint16_t i = 0; i < len; i++) {
-        byte c;
-        while (!m_serial->read(c)) {}
-        c ^= 0xff;
-        if (DEBUG) {
-            if (c <= 0xf) {
-                Serial.print("0");
-            }
-            Serial.print(c, HEX);
-            Serial.print(" ");
-        }
-        *(to + i) = c;
+void bsb::write_message(int type) {
+    if (DEBUG) {
+        Serial.print("DBG: > ");
     }
+    m_serial->write(m_query_list[type], m_query_len[type]);
 }
+
