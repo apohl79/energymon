@@ -1,0 +1,50 @@
+#!/bin/bash
+#
+# Start the graphite-carbon service.
+#
+### BEGIN INIT INFO
+# Provides:          graphite-carbon
+# Required-Start:    $local_fs $syslog
+# Required-Stop:     $local_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: graphite-carbon
+# Description:       graphite-carbon
+### END INIT INFO
+
+LOGDIR=/var/log/energymon
+name=graphite-carbon
+exe=/opt/graphite/bin/carbon-cache.py
+log=$LOGDIR/graphite-carbon.log
+
+. /lib/lsb/init-functions
+
+function do_start() {
+    log_begin_msg "Starting $name service"
+    $exe start >$LOG/graphite-carbon.log 2>&1
+    log_end_msg $?
+}
+
+function do_stop() {
+    log_begin_msg "Stopping $name service"
+    $exe stop >/dev/null 2>&1
+    log_end_msg $?
+}
+
+mkdir -p $LOGDIR 2>/dev/null
+
+case "$1" in
+    start)
+        do_start
+        ;;
+    stop)
+        do_stop
+        ;;
+    restart)
+        do_stop
+        do_start
+        ;;
+    *)
+        echo "$0 {start|stop|restart}"
+        ;;
+esac
