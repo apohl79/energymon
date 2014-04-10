@@ -7,10 +7,14 @@ use POSIX qw(strftime);
 
 use lib "/opt/energymon";
 use impulse_cfg;
+use IO::Socket;
 
 my $db = "DBI:mysql:database=energy;host=localhost";
 my $dbu = "root";
 my $dbp = "password";
+my $graphite_host = "pi01";
+
+my $graphite = undef;
 
 # initialising the gpio pin
 logmsg("setting up gpio pin $gpio_pin");
@@ -29,6 +33,7 @@ while (1) {
   logmsg("waiting for impulse...");
   wait_for_pin($pin_on);
   $counter += $impulse_count;
+  send_graphite("stats.stats.home.$db_table", $impulse_count);
   my $delta_t = time() - $last_t;
   logmsg("impulse detected, counter = $counter, delta_t = $delta_t");
   if ($delta_t >= $persist_interval) {
@@ -41,6 +46,17 @@ while (1) {
       logmsg("failed");
     }
   }
+}
+
+sub send_graphite {
+    my ($name, $val) = @_;
+    my $graphite = new IO::Socket::INET(PeerAddr => $graphite_host,
+                                        PeerPort => 2003,
+                                        Proto    => 'tcp');
+    if (defined($graphite)) {
+        print $graphite "$name $val ".time()."\n";
+        $graphite->close();
+    }
 }
 
 sub persist {
