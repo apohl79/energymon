@@ -9,7 +9,7 @@ use lib "/opt/energymon";
 use impulse_cfg;
 use IO::Socket;
 
-my $db = "DBI:mysql:database=energy;host=localhost";
+my $db = "DBI:mysql:database=energy;host=pi01";
 my $dbu = "root";
 my $dbp = "password";
 my $graphite_host = "pi01";
@@ -92,12 +92,16 @@ sub is_pin_stable {
 }
 
 sub gpio_read {
-  open F, "< /sys/class/gpio/gpio$gpio_pin/value"
-    or die "can't open /sys/class/gpio/gpio$gpio_pin/value";
-  my $val = <F>;
-  close F;
-  chomp $val;
-  return $val;
+  my $ok = open(F, "< /sys/class/gpio/gpio$gpio_pin/value");
+  if ($ok) {
+      my $val = <F>;
+      close F;
+      chomp $val;
+      return $val;
+  } else {
+      logmsg("Error: Failed to open /sys/class/gpio/gpio$gpio_pin/value: $!");
+  }
+  return 0;
 }
 
 sub logmsg {

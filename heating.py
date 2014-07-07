@@ -14,7 +14,7 @@ allowed_keys = frozenset([
     'null'
 ])
 
-db_host = 'localhost'
+db_host = 'pi01'
 db_db = 'energy'
 db_user = 'root'
 db_pass = 'password'
@@ -25,21 +25,25 @@ temperatures_lock = threading.Lock()
 def read_data():
     ser = serial.Serial('/dev/ttyUSB0')
     while (1):
-        data = ser.readline().rstrip()
-        if data.startswith('DBG:'):
-            if DEBUG:
-                print data
-        else:
-            if data.count("=") == 1:
-                (key, value) = data.split('=', 1)
+        try:
+            data = ser.readline().rstrip()
+            if data.startswith('DBG:'):
                 if DEBUG:
-                    print "DATA: key = " + key + ", value = " + value 
-                if key in allowed_keys:
-                    temperatures_lock.acquire()
-                    temperatures[key].append(float(value))
-                    temperatures_lock.release()
-                else:
-                    print "Ignoring: " + data
+                    print data
+            else:
+                if data.count("=") == 1:
+                    (key, value) = data.split('=', 1)
+                    if DEBUG:
+                        print "DATA: key = " + key + ", value = " + value 
+                    if key in allowed_keys:
+                        temperatures_lock.acquire()
+                        temperatures[key].append(float(value))
+                        temperatures_lock.release()
+                    else:
+                        print "Ignoring: " + data
+        except SerialException as e:
+            print "Error reading from serial device: " + e.strerror
+            time.sleep(5)
 
 def check_table(tbl):
     db = MySQLdb.connect(db_host, db_user, db_pass, db_db)

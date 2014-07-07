@@ -12,25 +12,31 @@
 # Description:       energymon
 ### END INIT INFO
 
-dir=/opt/energymon
 name=energymon
-exe1=$dir/energymon.sh
-pid1=/var/run/energymon.pid
-exe2=$dir/gas_meter.sh
-pid2=/var/run/gas_meter.pid
-exe3=$dir/power_meter.sh
-pid3=/var/run/power_meter.pid
-exe4=$dir/heating.sh
-pid4=/var/run/heating.pid
+dir=/opt/energymon
+exe=$dir/energymon.sh
+exe1="$exe gas"
+pid1=/var/run/gas.pid
+exe2="$exe power"
+pid2=/var/run/power.pid
+exe3="$exe heating"
+pid3=/var/run/heating.pid
+
+opt_args=""
+
+debug=0
+
+if [ $debug == 1 ]; then
+    opt_args="debug"
+fi
 
 . /lib/lsb/init-functions
 
 function do_start() {
     log_begin_msg "Starting $name service"
-    start-stop-daemon --start --quiet --pidfile $pid1 --exec $exe1
-    start-stop-daemon --start --quiet --pidfile $pid2 --exec $exe2
-    start-stop-daemon --start --quiet --pidfile $pid3 --exec $exe3
-    start-stop-daemon --start --quiet --pidfile $pid4 --exec $exe4
+    start-stop-daemon --start --quiet --pidfile $pid1 --exec $exe1 $opt_args
+    start-stop-daemon --start --quiet --pidfile $pid2 --exec $exe2 $opt_args
+    start-stop-daemon --start --quiet --pidfile $pid3 --exec $exe3 $opt_args
     log_end_msg $?
 }
 
@@ -39,7 +45,6 @@ function do_stop() {
     start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid1
     start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid2
     start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid3
-    start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $pid4
     log_end_msg $?
 }
 
