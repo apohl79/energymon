@@ -26,10 +26,12 @@ public:
     };
 
     bsb(uint8_t rx, uint8_t tx);
+    void debug();
     void read_message();
     void write_message(int type);
 
 private:
+    bool m_debug;
     serial_layer* m_serial;
     msg m_msg;
     byte** m_query_list;
