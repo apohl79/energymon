@@ -1,5 +1,6 @@
 #!/usr/bin/python -u
 import serial, thread, threading, time, MySQLdb
+from socket import socket, AF_INET, SOCK_DGRAM
 
 DEBUG = 1
 
@@ -13,7 +14,7 @@ allowed_keys = frozenset([
     'null'
 ])
 
-db_host = 'localhost'
+db_host = 'pi01'
 db_db = 'energy'
 db_user = 'root'
 db_pass = 'password'
@@ -24,21 +25,25 @@ temperatures_lock = threading.Lock()
 def read_data():
     ser = serial.Serial('/dev/ttyUSB0')
     while (1):
-        data = ser.readline().rstrip()
-        if data.startswith('DBG:'):
-            if DEBUG:
-                print data
-        else:
-            if data.count("=") == 1:
-                (key, value) = data.split('=', 1)
+        try:
+            data = ser.readline().rstrip()
+            if data.startswith('DBG:'):
                 if DEBUG:
-                    print "DATA: key = " + key + ", value = " + value 
-                if key in allowed_keys:
-                    temperatures_lock.acquire()
-                    temperatures[key].append(float(value))
-                    temperatures_lock.release()
-                else:
-                    print "Ignoring: " + data
+                    print data
+            else:
+                if data.count("=") == 1:
+                    (key, value) = data.split('=', 1)
+                    if DEBUG:
+                        print "DATA: key = " + key + ", value = " + value 
+                    if key in allowed_keys:
+                        temperatures_lock.acquire()
+                        temperatures[key].append(float(value))
+                        temperatures_lock.release()
+                    else:
+                        print "Ignoring: " + data
+        except SerialException as e:
+            print "Error reading from serial device: " + e.strerror
+            time.sleep(5)
 
 def check_table(tbl):
     db = MySQLdb.connect(db_host, db_user, db_pass, db_db)
@@ -47,6 +52,14 @@ def check_table(tbl):
     db.commit()
     db.close()
 
+def send_statsd(tbl, val):
+    try:
+        sock = socket(AF_INET, SOCK_DGRAM)
+        if val < 0:
+            sock.sendto("stats.home." + tbl + ":0|g\n", ("localhost", 8125))        
+        sock.sendto("stats.home." + tbl + ":" + str(val) + "|g\n", ("localhost", 8125))
+    except:
+        print "error sending record to statsd\n"
 
 for key in allowed_keys:
     if not key == 'null':
@@ -71,5 +84,6 @@ while 1:
             print "temperature(" + key + ", #" + str(num_vals) + ") = " + str(avg)
             cursor.execute("insert into " + key + " (time, temp) values(now(), " + str(avg) + ")")
             db.commit()
+            send_statsd(key, avg)
     temperatures_lock.release()
     db.close()
