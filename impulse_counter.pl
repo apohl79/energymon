@@ -9,10 +9,10 @@ use lib "/opt/energymon";
 use impulse_cfg;
 use IO::Socket;
 
-my $db = "DBI:mysql:database=energy;host=pi01";
+my $db = "DBI:mysql:database=energy;host=mneme";
 my $dbu = "root";
 my $dbp = "password";
-my $graphite_host = "pi01";
+my $graphite_host = "mneme";
 
 my $graphite = undef;
 

@@ -2,7 +2,7 @@
 import serial, thread, threading, time, MySQLdb
 from socket import socket, AF_INET, SOCK_DGRAM
 
-DEBUG = 1
+DEBUG = 0
 
 allowed_keys = frozenset([
     'temp_boiler',
@@ -14,7 +14,7 @@ allowed_keys = frozenset([
     'null'
 ])
 
-db_host = 'pi01'
+db_host = 'mneme'
 db_db = 'energy'
 db_user = 'root'
 db_pass = 'password'
@@ -73,17 +73,22 @@ except:
 
 while 1:
     time.sleep(300)
-    db = MySQLdb.connect(db_host, db_user, db_pass, db_db)
-    cursor = db.cursor()
-    temperatures_lock.acquire()
-    for key in temperatures:
-        if len(temperatures[key]) > 0:
-            avg = sum(temperatures[key]) / len(temperatures[key])
-            num_vals = len(temperatures[key])
-            del temperatures[key][:]
-            print "temperature(" + key + ", #" + str(num_vals) + ") = " + str(avg)
-            cursor.execute("insert into " + key + " (time, temp) values(now(), " + str(avg) + ")")
-            db.commit()
-            send_statsd(key, avg)
-    temperatures_lock.release()
-    db.close()
+    try:
+        db = MySQLdb.connect(db_host, db_user, db_pass, db_db)
+        cursor = db.cursor()
+        temperatures_lock.acquire()
+        for key in temperatures:
+            if len(temperatures[key]) > 0:
+                avg = sum(temperatures[key]) / len(temperatures[key])
+                num_vals = len(temperatures[key])
+                if DEBUG:
+                    print "temperature(" + key + ", #" + str(num_vals) + ") = " + str(avg)
+                cursor.execute("insert into " + key + " (time, temp) values(now(), " + str(avg) + ")")
+                db.commit()
+                del temperatures[key][:]
+                send_statsd(key, avg)
+        temperatures_lock.release()
+        db.close()
+    except:
+        temperatures_lock.release()
+        print "Error: db error"
