@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <serial_layer.h>
 #include <crc.h>
 #include <bsb.h>

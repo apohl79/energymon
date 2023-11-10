@@ -11,8 +11,8 @@ byte Q_BUFFER[11] =
     {0xDC, 0x86, 0x00, 0x0B, 0x06, 0x3D, 0x05, 0x05, 0x34, 0x00, 0x00};
 
 bsb::bsb(uint8_t rx, uint8_t tx) : m_debug(false), m_serial(new serial_layer(rx, tx)) {
-    m_query_list = new byte*[bsb::TOTAL_QUERIES];
-    m_query_len = new uint16_t[bsb::TOTAL_QUERIES];
+    m_query_list = (byte**) malloc(bsb::TOTAL_QUERIES * sizeof(byte*));
+    m_query_len = (uint16_t*) malloc(bsb::TOTAL_QUERIES * sizeof(uint16_t));
     init_query(bsb::HOTTAP, Q_HOTTAP, sizeof(Q_HOTTAP));
     init_query(bsb::COLLECTOR, Q_COLLECTOR, sizeof(Q_COLLECTOR));
     init_query(bsb::BUFFER, Q_BUFFER, sizeof(Q_BUFFER));
@@ -25,7 +25,7 @@ void bsb::debug() {
 
 void bsb::init_query(int type, byte* query, uint16_t len) {
     uint16_t crc = BSWAP16(crc16(query, len - sizeof(crc)));
-    m_query_list[type] = new byte[len];
+    m_query_list[type] = (byte*) malloc(len);
     m_query_len[type] = len;
     memcpy(m_query_list[type], query, len - sizeof(crc));
     memcpy(m_query_list[type] + len - sizeof(crc), &crc, sizeof(crc));
@@ -118,7 +118,6 @@ void bsb::print_message() {
     }
 }
 
-void bsb::write_message(int type) {
-    m_serial->write(m_query_list[type], m_query_len[type]);
+bool bsb::write_message(int type) {
+    return m_serial->write(m_query_list[type], m_query_len[type]);
 }
-

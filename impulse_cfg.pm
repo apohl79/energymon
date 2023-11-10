@@ -1,8 +1,8 @@
 package impulse_cfg;
 
 my $mode = $ARGV[0];
-if (!defined($mode)) {
-  print "Usage: $0 <gas|power>\n";
+if (!defined($mode) or ($mode ne "gas" and $mode ne "power")) {
+  print "Usage: $0 <gas|power> [debug]\n";
   exit;
 }
 
@@ -22,16 +22,21 @@ our $poll_freq = 100;
 our $stable_count = 10;
 # db table to persist data to
 our $db_table = "";
+# mqtt topic
+our $mqtt_topic = undef;
+# mqtt interval ins seconds
+our $mqtt_interval = 30;
 
 if ($mode eq "power") {
   $gpio_pin = 18;
-  $impulse_count = 0.001;
+  $impulse_count = 0.002;
   $pin_off = 1;
   $pin_on = 0;
   $persist_interval = 300;
-  $poll_freq = 3;
+  $poll_freq = 1;
   $stable_count = 3;
   $db_table = "power";
+  $mqtt_topic = "energy/power/watts";
 } elsif ($mode eq "gas") {
   $gpio_pin = 17;
   $impulse_count = 0.01;
@@ -41,7 +46,7 @@ if ($mode eq "power") {
 BEGIN {
   require Exporter;
   our @ISA = qw(Exporter);
-  our @EXPORT = qw($gpio_pin $impulse_count $pin_off $pin_on $persist_interval $poll_freq $stable_count $db_table);
+  our @EXPORT = qw($gpio_pin $impulse_count $pin_off $pin_on $persist_interval $poll_freq $stable_count $db_table $mqtt_topic $mqtt_interval);
 }
 
 1;

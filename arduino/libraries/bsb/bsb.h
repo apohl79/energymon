@@ -28,7 +28,7 @@ public:
     bsb(uint8_t rx, uint8_t tx);
     void debug();
     void read_message();
-    void write_message(int type);
+    bool write_message(int type);
 
 private:
     bool m_debug;
